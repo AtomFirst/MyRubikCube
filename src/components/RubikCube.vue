@@ -74,9 +74,31 @@ class Cube3{
     static id2xyz(id:number):Array<number>{
         return [Math.floor(id+0.01)%3-1,Math.floor(id/3+0.01)%3-1,Math.floor(id/9+0.01)-1];
     }
-    rotate(f:Matrix):Cube3{
-        const l=(x:number)=>x===0?-1:x;
-        const r=(x:number)=>x===0?1:x;
+    rotate(token:string):Cube3|undefined{
+        switch(token){
+            case 'F':
+                return this._rotate(front);
+            case 'B':
+                return this._rotate(back);
+            case 'L':
+                return this._rotate(left);
+            case 'R':
+                return this._rotate(right);
+            case 'U':
+                return this._rotate(up);
+            case 'D':
+                return this._rotate(down);
+            case 'x':
+                return this._rotate(right,false);
+            case 'y':
+                return this._rotate(up,false);
+            case 'z':
+                return this._rotate(front,false);
+        }
+    }
+    _rotate(f:Matrix,first_layer:boolean=true):Cube3{
+        const l=(x:number)=>(first_layer && x!==0)?x:-1;
+        const r=(x:number)=>(first_layer && x!==0)?x:1;
         const F=vec2mtr(f);
 
         const res=this.copy();
@@ -169,25 +191,12 @@ function onInput(event:Event):void{
             case 'R':
             case 'U':
             case 'D':
+            case 'x':
+            case 'y':
+            case 'z':
                 return true;
         }
         return false;
-    };
-    const f=(c:string)=>{
-        switch(c){
-            case 'F':
-                return front;
-            case 'B':
-                return back;
-            case 'L':
-                return left;
-            case 'R':
-                return right;
-            case 'U':
-                return up;
-            case 'D':
-                return down;
-        }
     };
 
     error.value='';
@@ -216,7 +225,7 @@ function onInput(event:Event):void{
     for(;i<tokens.length;i++){
         let cur=cube3.value[i];
         for(let j=0;j<(tokens[i][1] as number);j++)
-            cur=cur.rotate(f(tokens[i][0] as string) as Matrix);
+            cur=cur.rotate(tokens[i][0] as string) as Cube3;
         cube3.value[i+1]=cur;
     }
     while(cube3.value.length-1>tokens.length)
@@ -232,18 +241,13 @@ function onInput(event:Event):void{
     <textarea rows="10" cols="50" autofocus placeholder="输入公式" @input="onInput" />
     <button @click="show_history=!show_history"><span v-if="show_history">不</span>展示过程</button>
     <pre>{{ error }}</pre>
-
-    <h2>{{ cube3.length-1 }}</h2>
-    <pre style="line-height: 95%;" v-html="cube3[cube3.length-1].show()" />
-
-    <div v-if="show_history">
-        <ul class="list" v-for="i in cube3.length-1">
-            <div>
-                <h2>{{ cube3.length-i-1 }}</h2>
-                <pre style="line-height: 95%;" v-html="cube3[cube3.length-i-1].show()" />
-            </div>
-        </ul>
-    </div>
+    
+    <ul class="list" v-for="i in (show_history?cube3.length:1)">
+        <div>
+            <h2>{{ cube3.length-i }}</h2>
+            <pre style="line-height: 95%;" v-html="cube3[cube3.length-i].show()" />
+        </div>
+    </ul>
   </div>
 </template>
 
