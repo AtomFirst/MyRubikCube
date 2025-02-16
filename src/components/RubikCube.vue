@@ -157,6 +157,7 @@ class Cube3{
 const cube3=ref([new Cube3()]);
 let tokens=new Array();
 const error=ref('');
+const show_history=ref(false);
 
 function onInput(event:Event):void{
     const input=(event.target as HTMLInputElement).value as string;
@@ -229,14 +230,20 @@ function onInput(event:Event):void{
     <h1>大家好啊，我是魔方</h1>
     
     <textarea rows="10" cols="50" autofocus placeholder="输入公式" @input="onInput" />
+    <button @click="show_history=!show_history"><span v-if="show_history">不</span>展示过程</button>
     <pre>{{ error }}</pre>
 
-    <ul class="list" v-for="i in cube3.length">
-        <div>
-            <h2>{{ cube3.length-i }}</h2>
-            <pre style="line-height: 95%;" v-html="cube3[cube3.length-i].show()" />
-        </div>
-    </ul>
+    <h2>{{ cube3.length-1 }}</h2>
+    <pre style="line-height: 95%;" v-html="cube3[cube3.length-1].show()" />
+
+    <div v-if="show_history">
+        <ul class="list" v-for="i in cube3.length-1">
+            <div>
+                <h2>{{ cube3.length-i-1 }}</h2>
+                <pre style="line-height: 95%;" v-html="cube3[cube3.length-i-1].show()" />
+            </div>
+        </ul>
+    </div>
   </div>
 </template>
 
