@@ -2,8 +2,7 @@
 import type { Matrix } from "mathjs";
 
 import * as math from 'mathjs';
-import { toEditorSettings } from "typescript";
-import { ref,computed } from "vue";
+import { ref } from "vue";
 
 // six directions
 const front=math.matrix([1,0,0]);
@@ -21,37 +20,53 @@ function vec2mtr(vec:Matrix){
 }
 
 class Cube{
-    public rotation;
-    public color;
-    public id;
-    public constructor(){
-        this.rotation=math.identity(3);
-        this.color=new Map();
-        this.color.set(front.toString(),'orange');
-        this.color.set(back.toString(),'red');
-        this.color.set(left.toString(),'blue');
-        this.color.set(right.toString(),'green_');
-        this.color.set(up.toString(),'white');
-        this.color.set(down.toString(),'yellow');
-        this.id=[0,0,0];
+    rotation:Matrix;
+    color:Map<string,string>;
+    id:Array<number>;
+
+    constructor(rotation?:Matrix,color?:Map<string,string>,id?:Array<number>){
+        this.rotation=rotation?rotation:math.identity(3) as Matrix;
+        if(color)
+            this.color=color;
+        else{
+            this.color=new Map();
+            this.color.set(front.toString(),'orange');
+            this.color.set(back.toString(),'red');
+            this.color.set(left.toString(),'blue');
+            this.color.set(right.toString(),'green_');
+            this.color.set(up.toString(),'white');
+            this.color.set(down.toString(),'yellow');
+        }
+        this.id=id?id:[0,0,0];
     }
-    public rotate(f:Matrix):void{
-        this.rotation=math.multiply(f,this.rotation);
+    copy():Cube{
+        return new Cube(this.rotation,new Map(this.color),new Array(...this.id));
+    }
+    rotate(F:Matrix):Cube{
+        return new Cube(math.multiply(F,this.rotation),new Map(this.color),new Array(...this.id));
     }
     // input the 6
-    public look(angle:Matrix):string{
+    look(angle:Matrix):string|undefined{
         const face=math.multiply(angle,this.rotation).toString();
         return this.color.get(face);
     };
 };
 
 class Cube3{
-    private arr;
-    public constructor(){
-        this.arr=new Array<Cube>(27);
+    cubes:Array<Cube>;
+    
+    constructor(cubes?:Array<Cube>){
+        if(cubes){
+            this.cubes=cubes;
+            return;
+        }
+        this.cubes=new Array<Cube>(27);
         for(let i=0;i<27;i++)
-            this.arr[i]=new Cube(),
-            this.arr[i].id=Cube3.id2xyz(i);
+            this.cubes[i]=new Cube(),
+            this.cubes[i].id=Cube3.id2xyz(i);
+    }
+    copy():Cube3{
+        return new Cube3(this.cubes.map(cube=>cube.copy()));
     }
     static xyz2id(x:number,y:number,z:number):number{
         return Math.round(x+y*3+z*9+13);
@@ -59,72 +74,63 @@ class Cube3{
     static id2xyz(id:number):Array<number>{
         return [Math.floor(id+0.01)%3-1,Math.floor(id/3+0.01)%3-1,Math.floor(id/9+0.01)-1];
     }
-    public reset():void{
-        for(let i=0;i<27;i++)
-            this.arr[i]=new Cube(),
-            this.arr[i].id=Cube3.id2xyz(i);
-    }
-    public rotate(f:Matrix):void{
+    rotate(f:Matrix):Cube3{
         const l=(x:number)=>x===0?-1:x;
         const r=(x:number)=>x===0?1:x;
         const F=vec2mtr(f);
 
-        const move=new Array<Cube>(9); 
-        const nid=new Array<number>(9);
-        let tot=-1;
+        const res=this.copy();
         for(let x=l(f.get([0]));x<=r(f.get([0]));x++)
         for(let y=l(f.get([1]));y<=r(f.get([1]));y++)
         for(let z=l(f.get([2]));z<=r(f.get([2]));z++){
             const id=Cube3.xyz2id(x,y,z);
-            this.arr[id].rotate(F);
-            move[++tot]=this.arr[id];
             const [nx,ny,nz]=math.multiply(F,[x,y,z]).toArray().map((v,i,a)=>v as number);
-            nid[tot]=Cube3.xyz2id(nx,ny,nz);
+            const nid=Cube3.xyz2id(nx,ny,nz);
+            res.cubes[nid]=this.cubes[id].rotate(F);
         }
-        for(let i=0;i<=tot;i++)
-            this.arr[nid[i]]=move[i];   
+        return res;
     }
-    public show():string{
+    show():string{
         // front
         let front_view='';
         for(let z=1;z>=-1;z--){
             for(let y=-1;y<=1;y++)
-                front_view+=`<span class=${this.arr[Cube3.xyz2id(1,y,z)].look(front)}>  </span>`;
+                front_view+=`<span class=${this.cubes[Cube3.xyz2id(1,y,z)].look(front)}>  </span>`;
             front_view+='\n';
         }
         // back
         let back_view='';
         for(let z=1;z>=-1;z--){
             for(let y=1;y>=-1;y--)
-                back_view+=`<span class=${this.arr[Cube3.xyz2id(-1,y,z)].look(back)}>  </span>`;
+                back_view+=`<span class=${this.cubes[Cube3.xyz2id(-1,y,z)].look(back)}>  </span>`;
             back_view+='\n';
         }
         // left
         let left_view='';
         for(let z=1;z>=-1;z--){
             for(let x=-1;x<=1;x++)
-                left_view+=`<span class=${this.arr[Cube3.xyz2id(x,-1,z)].look(left)}>  </span>`;
+                left_view+=`<span class=${this.cubes[Cube3.xyz2id(x,-1,z)].look(left)}>  </span>`;
             left_view+='\n';
         }
         // right
         let right_view='';
         for(let z=1;z>=-1;z--){
             for(let x=1;x>=-1;x--)
-                right_view+=`<span class=${this.arr[Cube3.xyz2id(x,1,z)].look(right)}>  </span>`;
+                right_view+=`<span class=${this.cubes[Cube3.xyz2id(x,1,z)].look(right)}>  </span>`;
             right_view+='\n';
         }
         // up
         let up_view='';
         for(let x=-1;x<=1;x++){
             for(let y=-1;y<=1;y++)
-                up_view+=`<span class=${this.arr[Cube3.xyz2id(x,y,1)].look(up)}>  </span>`;
+                up_view+=`<span class=${this.cubes[Cube3.xyz2id(x,y,1)].look(up)}>  </span>`;
             up_view+='\n';
         }
         // down
         let down_view='';
         for(let x=1;x>=-1;x--){
             for(let y=-1;y<=1;y++)
-                down_view+=`<span class=${this.arr[Cube3.xyz2id(x,y,-1)].look(down)}>  </span>`;
+                down_view+=`<span class=${this.cubes[Cube3.xyz2id(x,y,-1)].look(down)}>  </span>`;
             down_view+='\n';
         }
 
@@ -148,14 +154,12 @@ class Cube3{
     }
 };
 
-const cube3=ref(new Cube3());
-const cube3_show=computed(()=>cube3.value.show());
-
+const cube3=ref([new Cube3()]);
+let tokens=new Array();
 const error=ref('');
 
-function onInput(event:Event){
+function onInput(event:Event):void{
     const input=(event.target as HTMLInputElement).value as string;
-    const tokens=[];
     const good=(c:string)=>{
         switch(c){
             case 'F':
@@ -184,56 +188,70 @@ function onInput(event:Event){
                 return down;
         }
     };
+
+    error.value='';
+    const t_tokens=[];
     for(let i=0;i<input.length;i++){
         const c=input[i];
         if(good(c))
-            tokens.push([c,1]);
+            t_tokens.push([c,1]);
         else if(c==='\''){
-            if(i==0 || !good(input[i-1])){
-                error.value=`第 ${i+1} 个字符为 '\'' 但前一个字符不是表示转动的字母`;
-                return;
-            }
-            tokens[tokens.length-1][1]=3;
+            if(i==0 || !good(input[i-1]))
+                error.value+=`第 ${i+1} 个字符为 '\'' 但前一个字符不是表示转动的字母\n`;
+            else
+                t_tokens[t_tokens.length-1][1]=3;
         }
         else if(c==='2')
-            tokens[tokens.length-1][1]=(tokens[tokens.length-1][1] as number)*2;
-        else if(c!==' ' && c!=='\n'){
-            error.value=`第 ${i+1} 个字符 ${c} 不是合法字符`;
-            return;
-        }
+            t_tokens[t_tokens.length-1][1]=(t_tokens[t_tokens.length-1][1] as number)*2%4;
+        else if(c!==' ' && c!=='\n')
+            error.value+=`第 ${i+1} 个字符 ${c} 不是合法字符\n`;
     }
-    error.value='';
-    cube3.value.reset();
-    for(let i=0;i<tokens.length;i++)
+
+    let i=0;
+    for(;i<t_tokens.length;i++)
+        if(i>=tokens.length || tokens[i][0]!==t_tokens[i][0] || tokens[i][1]!==t_tokens[i][1])
+            break;
+    tokens=t_tokens;
+    for(;i<tokens.length;i++){
+        let cur=cube3.value[i];
         for(let j=0;j<(tokens[i][1] as number);j++)
-            cube3.value.rotate(f(tokens[i][0] as string) as Matrix);
+            cur=cur.rotate(f(tokens[i][0] as string) as Matrix);
+        cube3.value[i+1]=cur;
+    }
+    while(cube3.value.length-1>tokens.length)
+        cube3.value.pop();
 }
+
 </script>
 
 <template>
-  <div class="greetings">
+  <div>
     <h1>大家好啊，我是魔方</h1>
+    
+    <textarea rows="10" cols="50" autofocus placeholder="输入公式" @input="onInput" />
+    <pre>{{ error }}</pre>
 
-    <pre style="line-height: 95%;" v-html="cube3_show" />
-    
-    <p>输入公式</p>
-    <textarea rows="10" cols="50" @input="onInput" />
-    <p>{{ error }}</p>
-    
-    <div hidden="true">
-        <button @click="cube3.rotate(front)">F</button>
-        <button @click="cube3.rotate(back)">B</button>
-        <button @click="cube3.rotate(left)">L</button>
-        <button @click="cube3.rotate(right)">R</button>
-        <button @click="cube3.rotate(up)">U</button>
-        <button @click="cube3.rotate(down)">D</button>
-    </div>
+    <ul class="list" v-for="i in cube3.length">
+        <div>
+            <h2>{{ cube3.length-i }}</h2>
+            <pre style="line-height: 95%;" v-html="cube3[cube3.length-i].show()" />
+        </div>
+    </ul>
   </div>
 </template>
 
 <style>
-input {
-    width: 100%;
+.list {
+  list-style-type: none; /* 去掉默认的列表符号 */
+  padding: 0;
+  margin: 1.5em;
+  display: flex; /* 启用 Flexbox 布局 */
+  flex-direction: row; /* 从左到右排列（默认值） */
+  gap: 10px; /* 可选：设置列表项之间的间距 */
+}
+
+div {
+    padding: 1.5em;
 }
 
 .blue{
@@ -264,17 +282,5 @@ h1 {
 
 h3 {
   font-size: 1.2rem;
-}
-
-.greetings h1,
-.greetings h3 {
-  text-align: center;
-}
-
-@media (min-width: 1024px) {
-  .greetings h1,
-  .greetings h3 {
-    text-align: left;
-  }
 }
 </style>
