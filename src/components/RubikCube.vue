@@ -74,6 +74,22 @@ class Cube3{
     static id2xyz(id:number):Array<number>{
         return [Math.floor(id+0.01)%3-1,Math.floor(id/3+0.01)%3-1,Math.floor(id/9+0.01)-1];
     }
+    _rotate(f:Matrix,first_layer:boolean=true):Cube3{
+        const l=(x:number)=>(first_layer && x!==0)?x:-1;
+        const r=(x:number)=>(first_layer && x!==0)?x:1;
+        const F=vec2mtr(f);
+
+        const res=this.copy();
+        for(let x=l(f.get([0]));x<=r(f.get([0]));x++)
+        for(let y=l(f.get([1]));y<=r(f.get([1]));y++)
+        for(let z=l(f.get([2]));z<=r(f.get([2]));z++){
+            const id=Cube3.xyz2id(x,y,z);
+            const [nx,ny,nz]=math.multiply(F,[x,y,z]).toArray().map((v,i,a)=>v as number);
+            const nid=Cube3.xyz2id(nx,ny,nz);
+            res.cubes[nid]=this.cubes[id].rotate(F);
+        }
+        return res;
+    }
     rotate(token:string):Cube3|undefined{
         switch(token){
             case 'F':
@@ -96,84 +112,42 @@ class Cube3{
                 return this._rotate(front,false);
         }
     }
-    _rotate(f:Matrix,first_layer:boolean=true):Cube3{
-        const l=(x:number)=>(first_layer && x!==0)?x:-1;
-        const r=(x:number)=>(first_layer && x!==0)?x:1;
-        const F=vec2mtr(f);
+    // get color of certain surface
+    color(index:number):string{
+        const col=(index-1)%12;
+        const row=(index-1-col)/12;
 
-        const res=this.copy();
-        for(let x=l(f.get([0]));x<=r(f.get([0]));x++)
-        for(let y=l(f.get([1]));y<=r(f.get([1]));y++)
-        for(let z=l(f.get([2]));z<=r(f.get([2]));z++){
-            const id=Cube3.xyz2id(x,y,z);
-            const [nx,ny,nz]=math.multiply(F,[x,y,z]).toArray().map((v,i,a)=>v as number);
-            const nid=Cube3.xyz2id(nx,ny,nz);
-            res.cubes[nid]=this.cubes[id].rotate(F);
-        }
-        return res;
-    }
-    show():string{
         // front
-        let front_view='';
-        for(let z=1;z>=-1;z--){
-            for(let y=-1;y<=1;y++)
-                front_view+=`<span class=${this.cubes[Cube3.xyz2id(1,y,z)].look(front)}>  </span>`;
-            front_view+='\n';
-        }
+        if(1*3<=row && row<2*3 && 1*3<=col && col<2*3)
+            return this.cubes[Cube3.xyz2id(1,col-(1*3+1),(1*3+1)-row)].look(front) as string;
+        
         // back
-        let back_view='';
-        for(let z=1;z>=-1;z--){
-            for(let y=1;y>=-1;y--)
-                back_view+=`<span class=${this.cubes[Cube3.xyz2id(-1,y,z)].look(back)}>  </span>`;
-            back_view+='\n';
-        }
+        if(1*3<=row && row<2*3 && 3*3<=col && col<4*3)
+            return this.cubes[Cube3.xyz2id(-1,(3*3+1)-col,(1*3+1)-row)].look(back) as string;
+        
         // left
-        let left_view='';
-        for(let z=1;z>=-1;z--){
-            for(let x=-1;x<=1;x++)
-                left_view+=`<span class=${this.cubes[Cube3.xyz2id(x,-1,z)].look(left)}>  </span>`;
-            left_view+='\n';
-        }
+        if(1*3<=row && row<2*3 && 0*3<=col && col<1*3)
+            return this.cubes[Cube3.xyz2id(col-(0*3+1),-1,(1*3+1)-row)].look(left) as string;
+
         // right
-        let right_view='';
-        for(let z=1;z>=-1;z--){
-            for(let x=1;x>=-1;x--)
-                right_view+=`<span class=${this.cubes[Cube3.xyz2id(x,1,z)].look(right)}>  </span>`;
-            right_view+='\n';
-        }
+        if(1*3<=row && row<2*3 && 2*3<=col && col<3*3)
+            return this.cubes[Cube3.xyz2id((2*3+1)-col,1,(1*3+1)-row)].look(right) as string;
+
         // up
-        let up_view='';
-        for(let x=-1;x<=1;x++){
-            for(let y=-1;y<=1;y++)
-                up_view+=`<span class=${this.cubes[Cube3.xyz2id(x,y,1)].look(up)}>  </span>`;
-            up_view+='\n';
-        }
+        if(0*3<=row && row<1*3 && 1*3<=col && col<2*3)
+            return this.cubes[Cube3.xyz2id(row-(0*3+1),col-(1*3+1),1)].look(up) as string;
+        
         // down
-        let down_view='';
-        for(let x=1;x>=-1;x--){
-            for(let y=-1;y<=1;y++)
-                down_view+=`<span class=${this.cubes[Cube3.xyz2id(x,y,-1)].look(down)}>  </span>`;
-            down_view+='\n';
-        }
-
-        //return front_view+right_view+back_view+left_view+up_view+down_view;
-        const u=up_view.split('\n');
-        const l=left_view.split('\n');
-        const f=front_view.split('\n');
-        const r=right_view.split('\n');
-        const b=back_view.split('\n');
-        const d=down_view.split('\n');
-
-        return '      '+u[0]+'\n'
-            +'      '+u[1]+'\n'
-            +'      '+u[2]+'\n'
-            +l[0]+f[0]+r[0]+b[0]+'\n'
-            +l[1]+f[1]+r[1]+b[1]+'\n'
-            +l[2]+f[2]+r[2]+b[2]+'\n'
-            +'      '+d[0]+'\n'
-            +'      '+d[1]+'\n'
-            +'      '+d[2]+'\n';
+        if(2*3<=row && row<3*3 && 1*3<=col && col<2*3)
+            return this.cubes[Cube3.xyz2id((2*3+1)-row,col-(1*3+1),-1)].look(down) as string;
+        
+        return '';
     }
+    /*
+    __color(index:number):ComputedRef<Array<string>>{
+        return computed(()=>['square',this.color(index)]);
+    }
+    */
 };
 
 const cube3=ref([new Cube3()]);
@@ -199,6 +173,7 @@ function onInput(event:Event):void{
         return false;
     };
 
+    // parse the input formula
     error.value='';
     const t_tokens=[];
     for(let i=0;i<input.length;i++){
@@ -217,6 +192,7 @@ function onInput(event:Event):void{
             error.value+=`第 ${i+1} 个字符 ${c} 不是合法字符\n`;
     }
 
+    // update cube3
     let i=0;
     for(;i<t_tokens.length;i++)
         if(i>=tokens.length || tokens[i][0]!==t_tokens[i][0] || tokens[i][1]!==t_tokens[i][1])
@@ -235,33 +211,47 @@ function onInput(event:Event):void{
 </script>
 
 <template>
-  <div>
-    <h1>大家好啊，我是魔方</h1>
+  <div class="mydiv">
+    <h1>大家好啊，我是<a href="https://github.com/AtomFirst/MyRubikCube">魔方</a></h1>
     
-    <textarea rows="10" cols="50" autofocus placeholder="输入公式" @input="onInput" />
+    <textarea rows="10" cols="50" autofocus placeholder="输入公式（支持符号：FBLRUDxyz'2）" @input="onInput" />
     <button @click="show_history=!show_history"><span v-if="show_history">不</span>展示过程</button>
     <pre>{{ error }}</pre>
     
-    <ul class="list" v-for="i in (show_history?cube3.length:1)">
-        <div>
+    <ul class="list">
+        <div v-for="i in (show_history?cube3.length:1)">
             <h2>{{ cube3.length-i }}</h2>
-            <pre style="line-height: 95%;" v-html="cube3[cube3.length-i].show()" />
+            <div class="surface-development">
+                <div v-for="j in 108" :class="['square',cube3[cube3.length-i].color(j)]"></div>
+            </div>
         </div>
     </ul>
   </div>
 </template>
 
-<style>
+<style scoped>
+.surface-development {
+  display: grid;
+  grid-template-columns: repeat(12, 1em);
+  grid-template-rows: repeat(9, 1em);
+  gap: 0.05em;
+}
+
+.square {
+  width: 1em;
+  height: 1em;
+}
+
 .list {
   list-style-type: none; /* 去掉默认的列表符号 */
   padding: 0;
   margin: 1.5em;
-  display: flex; /* 启用 Flexbox 布局 */
-  flex-direction: row; /* 从左到右排列（默认值） */
+  display: grid;
+  grid-template-columns: repeat(auto-fill, 200px);
   gap: 10px; /* 可选：设置列表项之间的间距 */
 }
 
-div {
+.mydiv {
     padding: 1.5em;
 }
 
