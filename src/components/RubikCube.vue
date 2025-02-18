@@ -33,7 +33,7 @@ class Cube{
             this.color.set(front.toString(),'orange');
             this.color.set(back.toString(),'red');
             this.color.set(left.toString(),'blue');
-            this.color.set(right.toString(),'green_');
+            this.color.set(right.toString(),'green');
             this.color.set(up.toString(),'white');
             this.color.set(down.toString(),'yellow');
         }
@@ -74,9 +74,19 @@ class Cube3{
     static id2xyz(id:number):Array<number>{
         return [Math.floor(id+0.01)%3-1,Math.floor(id/3+0.01)%3-1,Math.floor(id/9+0.01)-1];
     }
-    _rotate(f:Matrix,first_layer:boolean=true):Cube3{
-        const l=(x:number)=>(first_layer && x!==0)?x:-1;
-        const r=(x:number)=>(first_layer && x!==0)?x:1;
+    _rotate(f:Matrix,layer:'first'|'middle'|'all'='first'):Cube3{
+        //const l=(x:number)=>(first_layer && x!==0)?x:-1;
+        //const r=(x:number)=>(first_layer && x!==0)?x:1;
+        const l=layer==='first'?
+            (x:number)=>(x!==0?x:-1):
+            layer==='middle'?
+            (x:number)=>(x!==0?0:-1):
+            (x:number)=>-1;
+        const r=layer==='first'?
+            (x:number)=>(x!==0?x:1):
+            layer==='middle'?
+            (x:number)=>(x!==0?0:1):
+            (x:number)=>1;
         const F=vec2mtr(f);
 
         const res=this.copy();
@@ -104,12 +114,33 @@ class Cube3{
                 return this._rotate(up);
             case 'D':
                 return this._rotate(down);
+            
             case 'x':
-                return this._rotate(right,false);
+                return this._rotate(right,'all');
             case 'y':
-                return this._rotate(up,false);
+                return this._rotate(up,'all');
             case 'z':
-                return this._rotate(front,false);
+                return this._rotate(front,'all');
+            
+            case 'f':
+                return this._rotate(front,'all').rotate('B');
+            case 'b':
+                return this._rotate(back,'all').rotate('F');
+            case 'l':
+                return this._rotate(left,'all').rotate('R');
+            case 'r':
+                return this._rotate(right,'all').rotate('L');
+            case 'u':
+                return this._rotate(up,'all').rotate('D');
+            case 'd':
+                return this._rotate(down,'all').rotate('U');
+
+            case 'M':
+                return this._rotate(right,'middle');
+            case 'S':
+                return this._rotate(front,'middle');
+            case 'E':
+                return this._rotate(up,'middle');
         }
     }
     // get color of certain surface
@@ -159,15 +190,14 @@ function onInput(event:Event):void{
     const input=(event.target as HTMLInputElement).value as string;
     const good=(c:string)=>{
         switch(c){
-            case 'F':
-            case 'B':
-            case 'L':
-            case 'R':
-            case 'U':
-            case 'D':
-            case 'x':
-            case 'y':
-            case 'z':
+            case 'F': case 'B': 
+            case 'L': case 'R':
+            case 'U': case 'D':
+            case 'f': case 'b': 
+            case 'l': case 'r':
+            case 'u': case 'd':
+            case 'x': case 'y': case 'z':
+            case 'M': case 'S': case 'E':
                 return true;
         }
         return false;
@@ -214,7 +244,7 @@ function onInput(event:Event):void{
   <div class="mydiv">
     <h1>大家好啊，我是<a href="https://github.com/AtomFirst/MyRubikCube">魔方</a></h1>
     
-    <textarea rows="10" cols="50" autofocus placeholder="输入公式（支持符号：FBLRUDxyz'2）" @input="onInput" />
+    <textarea rows="10" cols="50" autofocus placeholder="输入公式（支持符号：FBLRUD fblrud xyz MSE ' 2）" @input="onInput" />
     <button @click="show_history=!show_history"><span v-if="show_history">不</span>展示过程</button>
     <pre>{{ error }}</pre>
     
@@ -234,7 +264,7 @@ function onInput(event:Event):void{
   display: grid;
   grid-template-columns: repeat(12, 1em);
   grid-template-rows: repeat(9, 1em);
-  gap: 0.05em;
+  gap: 0;
 }
 
 .square {
@@ -247,7 +277,7 @@ function onInput(event:Event):void{
   padding: 0;
   margin: 1.5em;
   display: grid;
-  grid-template-columns: repeat(auto-fill, 200px);
+  grid-template-columns: repeat(auto-fill, 14em);
   gap: 10px; /* 可选：设置列表项之间的间距 */
 }
 
@@ -261,7 +291,7 @@ function onInput(event:Event):void{
 .orange{
     background-color:orange;
 }
-.green_{
+.green{
     background-color:green;
 }   
 .red{
