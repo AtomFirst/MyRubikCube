@@ -3,7 +3,9 @@ import type { Matrix } from "mathjs";
 
 import * as math from 'mathjs';
 import { ref, watch, computed } from "vue";
+import useClipboard from 'vue-clipboard3';
 
+// 魔方类
 // six directions
 const front=math.matrix([1,0,0]);
 const back=math.matrix([-1,0,0]);
@@ -186,12 +188,15 @@ class Cube3{
     }
 };
 
-const cube3=ref([new Cube3()]);
+// 魔方历史记录
+const formula=ref('');
+
 let tokens=new Array();
+const cube3=ref([new Cube3()]);
+
 const error=ref('');
 const show_history=ref(false);
-
-const formula=ref('');
+const cube3reverse=computed(()=>cube3.value.slice().reverse());
 
 function onInput(input:string):void{
     const good=(c:string)=>{
@@ -270,9 +275,9 @@ function scramble(){
 
 watch(formula,onInput);
 
+// 格式串
 const format=computed(()=>cube3.value[cube3.value.length-1].format());
 
-import useClipboard from 'vue-clipboard3'
 const copyText=()=>{
   const {toClipboard}=useClipboard();
   toClipboard(format.value);
@@ -281,100 +286,111 @@ const copyText=()=>{
 </script>
 
 <template>
-  <div class="mydiv">
-    <!-- title -->
-    <h1>大家好啊，我是<a href="https://github.com/AtomFirst/MyRubikCube">魔方</a></h1>
+    <div class="mydiv">
+        <!-- title and input -->
+        <div style="display: flex; flex-direction: column; gap: 1em;">
+            <!-- title -->
+            <h1>大家好啊, 我是<a href="https://github.com/AtomFirst/MyRubikCube">魔方</a></h1>
 
-    <!-- keyboard input and format data -->
-    <div style="display: flex; gap: 0.3em;">
-        <textarea rows="10" cols="34" autofocus placeholder=
-"输入公式（支持符号：
-    FBLRUD
-    fblrud 
-    xyz MSE 
-    ' 2
-）" v-model="formula" />
-        <textarea rows="9" cols="12" placeholder="格式串" style="min-width: 6em" readonly :value="format" />
-    </div>
-
-    <!-- mouse or touch input -->
-    <div style="display: flex;">
-        <div style="display: grid; grid-template-columns: repeat(6,2.5em);">
-            <button v-for="c in 'FLURDB'" @click="formula+=c+' '">{{ c }} </button>
-            <button v-for="c in 'FLURDB'" @click="formula+=c+'\' '">{{ c }}'</button>
-            <button v-for="c in 'FLURDB'" @click="formula+=c+'2 '">{{ c }}2</button>
-            <button v-for="c in 'FLURDB'" @click="formula+=c+'\'2 '">{{ c }}'2</button>
-
-            <button v-for="c in 'xyzMSE'" @click="formula+=c+' '">{{ c }} </button>
-            <button v-for="c in 'xyzMSE'" @click="formula+=c+'\' '">{{ c }}'</button>
-            <button v-for="c in 'xyzMSE'" @click="formula+=c+'2 '">{{ c }}2</button>
-            <button v-for="c in 'xyzMSE'" @click="formula+=c+'\'2 '">{{ c }}'2</button>
-
-            <button v-for="c in 'flurdb'" @click="formula+=c+' '">{{ c }} </button>
-            <button v-for="c in 'flurdb'" @click="formula+=c+'\' '">{{ c }}'</button>
-            <button v-for="c in 'flurdb'" @click="formula+=c+'2 '">{{ c }}2</button>
-            <button v-for="c in 'flurdb'" @click="formula+=c+'\'2 '">{{ c }}'2</button>
-        </div>
-
-        <div style="display: flex; flex-direction: column;">
-            <button @click="undoFormula" style="flex: 1;">UNDO</button>
-            <button @click="formula+='\n'" style="flex: 1;">ENTER</button>
-            <button @click="formula=''" style="flex: 1;">CLEAR</button>
-        </div>
-
-        <div style="display: flex; flex-direction: column;">
-            <button @click="copyText" style="flex: 1;">复制文本</button>
-            <button @click="scramble" style="flex: 1;">随机打乱</button>
-            <button @click="show_history=!show_history" style="flex: 1;">
-                <span v-if="show_history">隐藏</span>
-                <span v-else>展示</span>过程
-            </button>
-        </div>  
-    </div>
-
-    <pre>{{ error }}</pre>
-    
-    <!-- cube's surface deveploment -->
-    <ul class="list">
-        <div v-for="i in (show_history?cube3.length:1)">
-            <h2>{{ cube3.length-i }}</h2>
-            <div class="surface-development">
-                <div v-for="j in 108" :class="['square',cube3[cube3.length-i].color(j)]"></div>
+            <!-- keyboard input -->
+            <div style="display: flex; gap: 0.3em;">
+                <textarea rows="10" cols="50" autofocus placeholder=
+        "输入公式（支持符号：
+            FBLRUD
+            fblrud 
+            xyz MSE 
+            ' 2
+        ）" v-model="formula" />
+                <!--textarea rows="9" cols="12" placeholder="格式串" style="min-width: 6em" readonly :value="format" /-->
             </div>
+
+                <!-- mouse or touch input -->
+            <div style="display: flex;">
+                <div style="display: grid; grid-template-columns: repeat(6,2.5em);">
+                    <button v-for="c in 'FLURDB'" @click="formula+=c+' '">{{ c }} </button>
+                    <button v-for="c in 'FLURDB'" @click="formula+=c+'\' '">{{ c }}'</button>
+                    <button v-for="c in 'FLURDB'" @click="formula+=c+'2 '">{{ c }}2</button>
+                    <button v-for="c in 'FLURDB'" @click="formula+=c+'\'2 '">{{ c }}'2</button>
+
+                    <button v-for="c in 'xyzMSE'" @click="formula+=c+' '">{{ c }} </button>
+                    <button v-for="c in 'xyzMSE'" @click="formula+=c+'\' '">{{ c }}'</button>
+                    <button v-for="c in 'xyzMSE'" @click="formula+=c+'2 '">{{ c }}2</button>
+                    <button v-for="c in 'xyzMSE'" @click="formula+=c+'\'2 '">{{ c }}'2</button>
+
+                    <button v-for="c in 'flurdb'" @click="formula+=c+' '">{{ c }} </button>
+                    <button v-for="c in 'flurdb'" @click="formula+=c+'\' '">{{ c }}'</button>
+                    <button v-for="c in 'flurdb'" @click="formula+=c+'2 '">{{ c }}2</button>
+                    <button v-for="c in 'flurdb'" @click="formula+=c+'\'2 '">{{ c }}'2</button>
+                </div>
+
+                <div style="display: flex; flex-direction: column;">
+                    <button @click="undoFormula" style="flex: 1;">UNDO</button>
+                    <button @click="formula+='\n'" style="flex: 1;">ENTER</button>
+                    <button @click="formula=''" style="flex: 1;">CLEAR</button>
+                </div>
+
+                <div style="display: flex; flex-direction: column;">
+                    <button @click="copyText" style="flex: 1;">复制文本</button>
+                    <button @click="scramble" style="flex: 1;">随机打乱</button>
+                    <button @click="show_history=!show_history" style="flex: 1;">
+                        <span v-if="show_history">隐藏</span>
+                        <span v-else>展示</span>过程
+                    </button>
+                </div>  
+            </div>
+
+            <pre>{{ error }}</pre>
         </div>
-    </ul>
 
-
-  </div>
+        <!-- cube's surface deveploment -->
+        <ul class="list" style="flex: 1;">
+            <div v-if="show_history" v-for="(c,i) in cube3reverse">
+                <h2>{{ cube3.length-i-1 }}</h2>
+                <div class="surface-development">
+                    <div v-for="j in 108" :class="['square',c.color(j)]"></div>
+                </div>
+            </div>
+            <div v-else>
+                <h2>{{ cube3.length-1 }}</h2>
+                <div class="surface-development">
+                    <div v-for="j in 108" :class="['square',cube3[cube3.length-1].color(j)]"></div>
+                </div>
+            </div>
+        </ul>
+    </div>
 </template>
 
 <style scoped>
 .surface-development {
-  display: grid;
-  grid-template-columns: repeat(12, 1em);
-  grid-template-rows: repeat(9, 1em);
-  gap: 0;
+    display: grid;
+    grid-template-columns: repeat(12, 1em);
+    grid-template-rows: repeat(9, 1em);
+    gap: 0;
 }
 
 .square {
-  width: 1em;
-  height: 1em;
+    width: 1em;
+    height: 1em;
 }
 
 .list {
-  list-style-type: none; /* 去掉默认的列表符号 */
-  padding: 0;
-  margin: 1.5em;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, 14em);
-  gap: 10px; /* 可选：设置列表项之间的间距 */
+    list-style-type: none; /* 去掉默认的列表符号 */
+    display: grid;
+    grid-template-columns: repeat(auto-fill, 12em);
+    gap: 3em; /* 可选：设置列表项之间的间距 */
+    max-height: 98%;
+    overflow-y: auto;
+}
+
+.list::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Opera */
 }
 
 .mydiv {
     padding: 1.5em;
     display: flex;
-    flex-direction: column;
-    gap: 1em;
+    gap: 2em;
+    height: 90vh;
 }
 
 .blue{
@@ -397,13 +413,13 @@ const copyText=()=>{
 }
 
 h1 {
-  font-weight: 500;
-  font-size: 2.6rem;
-  position: relative;
-  top: -10px;
+    font-weight: 500;
+    font-size: 2.6rem;
+    position: relative;
+    top: -10px;
 }
 
 h3 {
-  font-size: 1.2rem;
+    font-size: 1.2rem;
 }
 </style>
