@@ -194,7 +194,7 @@ const formula=ref('');
 let tokens=new Array();
 const cube3=ref([new Cube3()]);
 
-const error=ref('');
+const error=ref(new Array<string>());
 const show_history=ref(false);
 const cube3reverse=computed(()=>cube3.value.slice().reverse());
 
@@ -215,7 +215,7 @@ function onInput(input:string):void{
     };
 
     // parse the input formula
-    error.value='';
+    error.value=[];
     const t_tokens=[];
     for(let i=0;i<input.length;i++){
         const c=input[i];
@@ -223,14 +223,14 @@ function onInput(input:string):void{
             t_tokens.push([c,1]);
         else if(c==='\''){
             if(i==0 || !good(input[i-1]))
-                error.value+=`第 ${i+1} 个字符为 '\'' 但前一个字符不是表示转动的字母\n`;
+                error.value.push(`第 ${i+1} 个字符为 '\'' 但前一个字符不是表示转动的字母\n`);
             else
                 t_tokens[t_tokens.length-1][1]=3;
         }
         else if(c==='2')
             t_tokens[t_tokens.length-1][1]=(t_tokens[t_tokens.length-1][1] as number)*2%4;
         else if(c!==' ' && c!=='\n')
-            error.value+=`第 ${i+1} 个字符 ${c} 不是合法字符\n`;
+            error.value.push(`第 ${i+1} 个字符 ${c} 不是合法字符\n`);
     }
 
     // update cube3
@@ -294,13 +294,14 @@ const copyText=()=>{
 
             <!-- keyboard input -->
             <div style="display: flex; gap: 0.3em;">
-                <textarea rows="10" cols="50" autofocus placeholder=
-        "输入公式（支持符号：
-            FBLRUD
-            fblrud 
-            xyz MSE 
-            ' 2
-        ）" v-model="formula" />
+                <textarea rows="7" cols="50" autofocus placeholder=
+"输入公式（支持符号：
+    FBLRUD
+    fblrud 
+    xyz MSE 
+    ' 2
+）" 
+                v-model="formula" />
                 <!--textarea rows="9" cols="12" placeholder="格式串" style="min-width: 6em" readonly :value="format" /-->
             </div>
 
@@ -339,7 +340,9 @@ const copyText=()=>{
                 </div>  
             </div>
 
-            <pre>{{ error }}</pre>
+            <ul style="overflow-y: auto;">
+                <li v-for="e in error">{{ e }}</li>
+            </ul>
         </div>
 
         <!-- cube's surface deveploment -->
@@ -382,7 +385,7 @@ const copyText=()=>{
     overflow-y: auto;
 }
 
-.list::-webkit-scrollbar {
+::-webkit-scrollbar {
     display: none; /* Chrome, Safari, Opera */
 }
 
