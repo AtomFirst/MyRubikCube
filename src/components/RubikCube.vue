@@ -30,10 +30,10 @@ class Cube{
             this.color=color;
         else{
             this.color=new Map();
-            this.color.set(front.toString(),'orange');
-            this.color.set(back.toString(),'red');
-            this.color.set(left.toString(),'blue');
-            this.color.set(right.toString(),'green');
+            this.color.set(front.toString(),'green');
+            this.color.set(back.toString(),'blue');
+            this.color.set(left.toString(),'orange');
+            this.color.set(right.toString(),'red');
             this.color.set(up.toString(),'white');
             this.color.set(down.toString(),'yellow');
         }
@@ -174,11 +174,16 @@ class Cube3{
         
         return '';
     }
-    /*
-    __color(index:number):ComputedRef<Array<string>>{
-        return computed(()=>['square',this.color(index)]);
+    format():string{
+        let fmt='';
+        for(let i=1;i<=108;i++){
+            const c=this.color(i);
+            fmt+=c?c[0]:' ';
+            if(i!==1 && i!=108 && i%12===0)
+                fmt+='\n';
+        }
+        return fmt;
     }
-    */
 };
 
 const cube3=ref([new Cube3()]);
@@ -243,8 +248,10 @@ function onInput(event:Event):void{
 <template>
   <div class="mydiv">
     <h1>大家好啊，我是<a href="https://github.com/AtomFirst/MyRubikCube">魔方</a></h1>
-    
-    <textarea rows="10" cols="50" autofocus placeholder="输入公式（支持符号：FBLRUD fblrud xyz MSE ' 2）" @input="onInput" />
+    <div style="display: flex; gap: 5px;">
+        <textarea rows="10" cols="45" autofocus placeholder="输入公式（支持符号：FBLRUD fblrud xyz MSE ' 2）" @input="onInput" />
+        <textarea rows="9" cols="12" placeholder="格式串" :value="cube3[cube3.length-1].format()" />
+    </div>
     <button @click="show_history=!show_history"><span v-if="show_history">不</span>展示过程</button>
     <pre>{{ error }}</pre>
     
