@@ -2,7 +2,7 @@
 import type { Matrix } from "mathjs";
 
 import * as math from 'mathjs';
-import { ref } from "vue";
+import { ref, watch } from "vue";
 
 // six directions
 const front=math.matrix([1,0,0]);
@@ -191,8 +191,9 @@ let tokens=new Array();
 const error=ref('');
 const show_history=ref(false);
 
-function onInput(event:Event):void{
-    const input=(event.target as HTMLInputElement).value as string;
+const formula=ref('');
+
+function onInput(input:string):void{
     const good=(c:string)=>{
         switch(c){
             case 'F': case 'B': 
@@ -243,18 +244,57 @@ function onInput(event:Event):void{
         cube3.value.pop();
 }
 
+function undoFormula(){
+    const last=formula.value.slice(-1);
+    let w=(last==='\'' || last==='2')?2:1;
+    formula.value=formula.value.slice(0,-w);
+}
+
+watch(formula,onInput);
+
 </script>
 
 <template>
   <div class="mydiv">
+    <!-- title -->
     <h1>大家好啊，我是<a href="https://github.com/AtomFirst/MyRubikCube">魔方</a></h1>
-    <div style="display: flex; gap: 5px;">
-        <textarea rows="10" cols="45" autofocus placeholder="输入公式（支持符号：FBLRUD fblrud xyz MSE ' 2）" @input="onInput" />
-        <textarea rows="9" cols="12" placeholder="格式串" :value="cube3[cube3.length-1].format()" />
+
+    <!-- keyboard input and format data -->
+    <div style="display: flex; gap: 0.3em;">
+        <textarea rows="10" cols="30" autofocus placeholder=
+"输入公式（支持符号：
+    FBLRUD
+    fblrud 
+    xyz MSE 
+    ' 2
+）" v-model="formula" />
+        <textarea rows="9" cols="12" placeholder="格式串" style="min-width: 6em" :value="cube3[cube3.length-1].format()" />
     </div>
-    <button @click="show_history=!show_history"><span v-if="show_history">不</span>展示过程</button>
+
+    <!-- mouse or touch input -->
+    <div style="display: flex;">
+        <div style="display: grid; grid-template-columns: repeat(6,2em);">
+            <button v-for="c in 'FLURDB'" @click="formula+=c">{{ c }} </button>
+            <button v-for="c in 'FLURDB'" @click="formula+=c+'\''">{{ c }}'</button>
+            <button v-for="c in 'FLURDB'" @click="formula+=c+'2'">{{ c }}2</button>
+            <button v-for="c in 'xyzMSE'" @click="formula+=c">{{ c }} </button>
+            <button v-for="c in 'flurdb'" @click="formula+=c">{{ c }} </button>
+            <button v-for="c in 'flurdb'" @click="formula+=c+'\''">{{ c }}'</button>
+            <button v-for="c in 'flurdb'" @click="formula+=c+'2'">{{ c }}2</button>
+        </div>
+
+        <div style="display: flex; flex-direction: column;">
+            <button @click="undoFormula" style="height: 33.4%;">UNDO</button>
+            <button @click="formula+='\n'" style="height: 33.3%;">ENTER</button>
+            <button @click="formula=''" style="height: 33.3%;">CLEAR</button>
+        </div>
+
+        <button @click="show_history=!show_history"><span v-if="show_history">不</span>展示过程</button>
+    </div>
+
     <pre>{{ error }}</pre>
     
+    <!-- cube's surface deveploment -->
     <ul class="list">
         <div v-for="i in (show_history?cube3.length:1)">
             <h2>{{ cube3.length-i }}</h2>
@@ -263,6 +303,8 @@ function onInput(event:Event):void{
             </div>
         </div>
     </ul>
+
+
   </div>
 </template>
 
@@ -290,6 +332,9 @@ function onInput(event:Event):void{
 
 .mydiv {
     padding: 1.5em;
+    display: flex;
+    flex-direction: column;
+    gap: 1em;
 }
 
 .blue{
