@@ -246,8 +246,9 @@ function onInput(input:string):void{
 
 function undoFormula(){
     const last=formula.value.slice(-1);
-    let w=(last==='\'' || last==='2')?2:1;
-    formula.value=formula.value.slice(0,-w);
+    formula.value=formula.value.slice(0,-1);
+    if(last==='\'' || last==='2' || last==='\n' || last===' ') 
+        undoFormula();
 }
 
 function scramble(){
@@ -261,8 +262,9 @@ function scramble(){
             c+='\'';
         if(Math.random()>0.5)
             c+='2';
-        str+=c;
+        str+=c+' ';
     }
+    str+='\n';
     formula.value=str;
 }
 
@@ -298,18 +300,20 @@ const copyText=()=>{
     <!-- mouse or touch input -->
     <div style="display: flex;">
         <div style="display: grid; grid-template-columns: repeat(6,2.5em);">
-            <button v-for="c in 'FLURDB'" @click="formula+=c">{{ c }} </button>
-            <button v-for="c in 'FLURDB'" @click="formula+=c+'\''">{{ c }}'</button>
-            <button v-for="c in 'FLURDB'" @click="formula+=c+'2'">{{ c }}2</button>
-            <button v-for="c in 'FLURDB'" @click="formula+=c+'\'2'">{{ c }}'2</button>
-            <button v-for="c in 'xyzMSE'" @click="formula+=c">{{ c }} </button>
-            <button v-for="c in 'xyzMSE'" @click="formula+=c+'\''">{{ c }}'</button>
-            <button v-for="c in 'xyzMSE'" @click="formula+=c+'2'">{{ c }}2</button>
-            <button v-for="c in 'xyzMSE'" @click="formula+=c+'\'2'">{{ c }}'2</button>
-            <button v-for="c in 'flurdb'" @click="formula+=c">{{ c }} </button>
-            <button v-for="c in 'flurdb'" @click="formula+=c+'\''">{{ c }}'</button>
-            <button v-for="c in 'flurdb'" @click="formula+=c+'2'">{{ c }}2</button>
-            <button v-for="c in 'flurdb'" @click="formula+=c+'\'2'">{{ c }}'2</button>
+            <button v-for="c in 'FLURDB'" @click="formula+=c+' '">{{ c }} </button>
+            <button v-for="c in 'FLURDB'" @click="formula+=c+'\' '">{{ c }}'</button>
+            <button v-for="c in 'FLURDB'" @click="formula+=c+'2 '">{{ c }}2</button>
+            <button v-for="c in 'FLURDB'" @click="formula+=c+'\'2 '">{{ c }}'2</button>
+
+            <button v-for="c in 'xyzMSE'" @click="formula+=c+' '">{{ c }} </button>
+            <button v-for="c in 'xyzMSE'" @click="formula+=c+'\' '">{{ c }}'</button>
+            <button v-for="c in 'xyzMSE'" @click="formula+=c+'2 '">{{ c }}2</button>
+            <button v-for="c in 'xyzMSE'" @click="formula+=c+'\'2 '">{{ c }}'2</button>
+
+            <button v-for="c in 'flurdb'" @click="formula+=c+' '">{{ c }} </button>
+            <button v-for="c in 'flurdb'" @click="formula+=c+'\' '">{{ c }}'</button>
+            <button v-for="c in 'flurdb'" @click="formula+=c+'2 '">{{ c }}2</button>
+            <button v-for="c in 'flurdb'" @click="formula+=c+'\'2 '">{{ c }}'2</button>
         </div>
 
         <div style="display: flex; flex-direction: column;">
