@@ -2,7 +2,7 @@
 import type { Matrix } from "mathjs";
 
 import * as math from 'mathjs';
-import { ref, watch } from "vue";
+import { ref, watch, computed } from "vue";
 
 // six directions
 const front=math.matrix([1,0,0]);
@@ -250,7 +250,31 @@ function undoFormula(){
     formula.value=formula.value.slice(0,-w);
 }
 
+function scramble(){
+    const step=20;
+    const words='UDLRFB';
+    let str='';    
+    for(let i=0;i<step;i++){
+        const rnd=Math.floor(Math.random()*6);
+        let c=words[rnd];
+        if(Math.random()>0.5)
+            c+='\'';
+        if(Math.random()>0.5)
+            c+='2';
+        str+=c;
+    }
+    formula.value=str;
+}
+
 watch(formula,onInput);
+
+const format=computed(()=>cube3.value[cube3.value.length-1].format());
+
+import useClipboard from 'vue-clipboard3'
+const copyText=()=>{
+  const {toClipboard}=useClipboard();
+  toClipboard(format.value);
+};
 
 </script>
 
@@ -261,35 +285,47 @@ watch(formula,onInput);
 
     <!-- keyboard input and format data -->
     <div style="display: flex; gap: 0.3em;">
-        <textarea rows="10" cols="30" autofocus placeholder=
+        <textarea rows="10" cols="34" autofocus placeholder=
 "输入公式（支持符号：
     FBLRUD
     fblrud 
     xyz MSE 
     ' 2
 ）" v-model="formula" />
-        <textarea rows="9" cols="12" placeholder="格式串" style="min-width: 6em" :value="cube3[cube3.length-1].format()" />
+        <textarea rows="9" cols="12" placeholder="格式串" style="min-width: 6em" readonly :value="format" />
     </div>
 
     <!-- mouse or touch input -->
     <div style="display: flex;">
-        <div style="display: grid; grid-template-columns: repeat(6,2em);">
+        <div style="display: grid; grid-template-columns: repeat(6,2.5em);">
             <button v-for="c in 'FLURDB'" @click="formula+=c">{{ c }} </button>
             <button v-for="c in 'FLURDB'" @click="formula+=c+'\''">{{ c }}'</button>
             <button v-for="c in 'FLURDB'" @click="formula+=c+'2'">{{ c }}2</button>
+            <button v-for="c in 'FLURDB'" @click="formula+=c+'\'2'">{{ c }}'2</button>
             <button v-for="c in 'xyzMSE'" @click="formula+=c">{{ c }} </button>
+            <button v-for="c in 'xyzMSE'" @click="formula+=c+'\''">{{ c }}'</button>
+            <button v-for="c in 'xyzMSE'" @click="formula+=c+'2'">{{ c }}2</button>
+            <button v-for="c in 'xyzMSE'" @click="formula+=c+'\'2'">{{ c }}'2</button>
             <button v-for="c in 'flurdb'" @click="formula+=c">{{ c }} </button>
             <button v-for="c in 'flurdb'" @click="formula+=c+'\''">{{ c }}'</button>
             <button v-for="c in 'flurdb'" @click="formula+=c+'2'">{{ c }}2</button>
+            <button v-for="c in 'flurdb'" @click="formula+=c+'\'2'">{{ c }}'2</button>
         </div>
 
         <div style="display: flex; flex-direction: column;">
-            <button @click="undoFormula" style="height: 33.4%;">UNDO</button>
-            <button @click="formula+='\n'" style="height: 33.3%;">ENTER</button>
-            <button @click="formula=''" style="height: 33.3%;">CLEAR</button>
+            <button @click="undoFormula" style="flex: 1;">UNDO</button>
+            <button @click="formula+='\n'" style="flex: 1;">ENTER</button>
+            <button @click="formula=''" style="flex: 1;">CLEAR</button>
         </div>
 
-        <button @click="show_history=!show_history"><span v-if="show_history">不</span>展示过程</button>
+        <div style="display: flex; flex-direction: column;">
+            <button @click="copyText" style="flex: 1;">复制文本</button>
+            <button @click="scramble" style="flex: 1;">随机打乱</button>
+            <button @click="show_history=!show_history" style="flex: 1;">
+                <span v-if="show_history">隐藏</span>
+                <span v-else>展示</span>过程
+            </button>
+        </div>  
     </div>
 
     <pre>{{ error }}</pre>
