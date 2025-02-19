@@ -16,16 +16,4 @@ header {
 main {
   background-color: darkgray;
 }
-
-.logo {
-  display: block;
-  margin: 0 auto 2rem;
-}
-
-.wrapper {
-  display: flex;
-  flex-direction: column;
-  place-items: flex-start;
-  flex-wrap: wrap;
-}
 </style>
