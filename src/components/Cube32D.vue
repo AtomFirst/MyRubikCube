@@ -1,16 +1,17 @@
 <script setup lang="ts">
 import { Cube3 } from '@/rubik-cube/rubik-cube';
 
-const props=defineProps({
-    cube3:Cube3
+const props = defineProps({
+    cube3: Cube3
 });
 
 </script>
 
 <template>
-    <div class="surface-development">
-        <div v-for="i in 108" :class="['square',(cube3 as Cube3).color(i)]"></div>
+    <div v-if="cube3" class="surface-development">
+        <div v-for="i in 108" :class="['square', cube3.getColor(i)]"></div>
     </div>
+    <p v-else>Cube32D缺少参数 cube3:Cube3</p>
 </template>
 
 <style scoped>
@@ -26,22 +27,27 @@ const props=defineProps({
     height: 1em;
 }
 
-.blue{
-    background-color:blue;
+.blue {
+    background-color: blue;
 }
-.orange{
-    background-color:orange;
+
+.orange {
+    background-color: orange;
 }
-.green{
-    background-color:green;
-}   
-.red{
-    background-color:red;
+
+.green {
+    background-color: green;
 }
-.white{
-    background-color:white;
+
+.red {
+    background-color: red;
 }
-.yellow{
-    background-color:yellow;
+
+.white {
+    background-color: white;
+}
+
+.yellow {
+    background-color: yellow;
 }
 </style>

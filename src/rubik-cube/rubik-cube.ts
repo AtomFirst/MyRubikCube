@@ -1,184 +1,189 @@
-import type { Matrix } from "mathjs";
+import type { Matrix } from 'mathjs';
 import * as math from 'mathjs';
 
-// six directions
-export const front=math.matrix([1,0,0]);
-export const back=math.matrix([-1,0,0]);
-export const left=math.matrix([0,-1,0]);
-export const right=math.matrix([0,1,0]);
-export const up=math.matrix([0,0,1]);
-export const down=math.matrix([0,0,-1]);
+type Direction = 'front' | 'back' | 'left' | 'right' | 'up' | 'down';
 
-// input: a vector
-// output: a matrix rotate pi/2 anticlockwise the input vector
-// you should not input vector beyond the six directions
-export function vec2mtr(vec:Matrix){
-    return math.rotationMatrix(-math.pi/2,vec).map((a,b,c)=>Math.round(a));
+type RotationVectorMap = { [key in Direction]: Matrix };
+const defaultRotationVectorMap: RotationVectorMap = {
+    front: math.matrix([1, 0, 0]),
+    back: math.matrix([-1, 0, 0]),
+    left: math.matrix([0, -1, 0]),
+    right: math.matrix([0, 1, 0]),
+    up: math.matrix([0, 0, 1]),
+    down: math.matrix([0, 0, -1]),
+} as const;
+const getRotationVector = (direction: Direction) => defaultRotationVectorMap[direction];
+const getRotationMatrix = (direction: Direction) => math.rotationMatrix(-math.pi / 2, getRotationVector(direction)).map((a) => Math.round(a));
+
+type DirectionMap = { [key in string]: Direction };
+const defaultDirectionMap: DirectionMap = {
+    [getRotationVector('front').toString()]: 'front',
+    [getRotationVector('back').toString()]: 'back',
+    [getRotationVector('left').toString()]: 'left',
+    [getRotationVector('right').toString()]: 'right',
+    [getRotationVector('up').toString()]: 'up',
+    [getRotationVector('down').toString()]: 'down',
+} as const;
+/*
+Object.keys(defaultRotationVectorMap).reduce((acc, cur) => {
+    cur[getRotationVector(acc as Direction).toString()] = acc;
+    return cur;
+}, {});
+*/
+const getDirection = (rotationVector: Matrix) => defaultDirectionMap[rotationVector.toString()];
+
+type ColorMap = { [key in Direction]: string };
+const defaultColorMap: ColorMap = {
+    front: 'green',
+    back: 'blue',
+    left: 'orange',
+    right: 'red',
+    up: 'white',
+    down: 'yellow',
+} as const;
+
+class Cube {
+    rotation: Matrix;
+    colorMap: ColorMap;
+    id: Array<number>;
+
+    constructor(rotation: Matrix = math.identity(3) as Matrix, colorMap: ColorMap = defaultColorMap, id: Array<number> = [0, 0, 0]) {
+        this.rotation = rotation;
+        this.colorMap = colorMap;
+        this.id = id;
+    }
+
+    copy(): Cube {
+        return new Cube(this.rotation, { ...this.colorMap }, [...this.id]);
+    }
+
+    rotate(rotationMatrix: Matrix): Cube {
+        return new Cube(math.multiply(rotationMatrix, this.rotation), { ...this.colorMap }, [...this.id]);
+    }
+
+    look(angle: Direction): string {
+        const face = math.multiply(getRotationVector(angle), this.rotation);
+        return this.colorMap[getDirection(face)];
+    }
 }
 
-export class Cube{
-    rotation:Matrix;
-    color:Map<string,string>;
-    id:Array<number>;
+export type Token = 'F' | 'B' | 'L' | 'R' | 'U' | 'D' | 'f' | 'b' | 'l' | 'r' | 'u' | 'd' | 'x' | 'y' | 'z' | 'M' | 'S' | 'E';
 
-    constructor(rotation?:Matrix,color?:Map<string,string>,id?:Array<number>){
-        this.rotation=rotation?rotation:math.identity(3) as Matrix;
-        if(color)
-            this.color=color;
-        else{
-            this.color=new Map();
-            this.color.set(front.toString(),'green');
-            this.color.set(back.toString(),'blue');
-            this.color.set(left.toString(),'orange');
-            this.color.set(right.toString(),'red');
-            this.color.set(up.toString(),'white');
-            this.color.set(down.toString(),'yellow');
-        }
-        this.id=id?id:[0,0,0];
-    }
-    copy():Cube{
-        return new Cube(this.rotation,new Map(this.color),new Array(...this.id));
-    }
-    rotate(F:Matrix):Cube{
-        return new Cube(math.multiply(F,this.rotation),new Map(this.color),new Array(...this.id));
-    }
-    // input the 6
-    look(angle:Matrix):string|undefined{
-        const face=math.multiply(angle,this.rotation).toString();
-        return this.color.get(face);
-    };
-};
+export class Cube3 {
+    cubes: Array<Cube>;
 
-export class Cube3{
-    cubes:Array<Cube>;
-    
-    constructor(cubes?:Array<Cube>){
-        if(cubes){
-            this.cubes=cubes;
+    constructor(cubes?: Array<Cube>) {
+        if (cubes) {
+            this.cubes = cubes;
             return;
         }
-        this.cubes=new Array<Cube>(27);
-        for(let i=0;i<27;i++)
-            this.cubes[i]=new Cube(),
-            this.cubes[i].id=Cube3.id2xyz(i);
+        this.cubes = new Array<Cube>(27);
+        for (let i = 0; i < 27; i++) (this.cubes[i] = new Cube()), (this.cubes[i].id = Cube3.id2xyz(i));
     }
-    copy():Cube3{
-        return new Cube3(this.cubes.map(cube=>cube.copy()));
-    }
-    static xyz2id(x:number,y:number,z:number):number{
-        return Math.round(x+y*3+z*9+13);
-    }
-    static id2xyz(id:number):Array<number>{
-        return [Math.floor(id+0.01)%3-1,Math.floor(id/3+0.01)%3-1,Math.floor(id/9+0.01)-1];
-    }
-    _rotate(f:Matrix,layer:'first'|'middle'|'all'='first'):Cube3{
-        //const l=(x:number)=>(first_layer && x!==0)?x:-1;
-        //const r=(x:number)=>(first_layer && x!==0)?x:1;
-        const l=layer==='first'?
-            (x:number)=>(x!==0?x:-1):
-            layer==='middle'?
-            (x:number)=>(x!==0?0:-1):
-            (x:number)=>-1;
-        const r=layer==='first'?
-            (x:number)=>(x!==0?x:1):
-            layer==='middle'?
-            (x:number)=>(x!==0?0:1):
-            (x:number)=>1;
-        const F=vec2mtr(f);
 
-        const res=this.copy();
-        for(let x=l(f.get([0]));x<=r(f.get([0]));x++)
-        for(let y=l(f.get([1]));y<=r(f.get([1]));y++)
-        for(let z=l(f.get([2]));z<=r(f.get([2]));z++){
-            const id=Cube3.xyz2id(x,y,z);
-            const [nx,ny,nz]=math.multiply(F,[x,y,z]).toArray().map((v,i,a)=>v as number);
-            const nid=Cube3.xyz2id(nx,ny,nz);
-            res.cubes[nid]=this.cubes[id].rotate(F);
-        }
+    copy(): Cube3 {
+        return new Cube3(this.cubes.map((cube) => cube.copy()));
+    }
+
+    static xyz2id(x: number, y: number, z: number): number {
+        return Math.round(x + y * 3 + z * 9 + 13);
+    }
+
+    static id2xyz(id: number): Array<number> {
+        return [(Math.floor(id + 0.01) % 3) - 1, (Math.floor(id / 3 + 0.01) % 3) - 1, Math.floor(id / 9 + 0.01) - 1];
+    }
+
+    _rotate(direction: Direction, layer: 'first' | 'middle' | 'first_middle' | 'all' = 'first'): Cube3 {
+        const lMap = {
+            first: (x: number) => (x !== 0 ? x : -1),
+            middle: (x: number) => (x !== 0 ? 0 : -1),
+            first_middle: (x: number) => (x !== 0 ? Math.min(0, x) : -1),
+            all: () => -1,
+        } as const;
+
+        const rMap = {
+            first: (x: number) => (x !== 0 ? x : 1),
+            middle: (x: number) => (x !== 0 ? 0 : 1),
+            first_middle: (x: number) => (x !== 0 ? Math.max(0, x) : 1),
+            all: () => 1,
+        } as const;
+
+        const l = lMap[layer];
+        const r = rMap[layer];
+
+        const f = getRotationVector(direction);
+        const F = getRotationMatrix(direction);
+
+        const res = this.copy();
+        for (let x = l(f.get([0])); x <= r(f.get([0])); x++)
+            for (let y = l(f.get([1])); y <= r(f.get([1])); y++)
+                for (let z = l(f.get([2])); z <= r(f.get([2])); z++) {
+                    const id = Cube3.xyz2id(x, y, z);
+                    const [nx, ny, nz] = math
+                        .multiply(F, [x, y, z])
+                        .toArray()
+                        .map((v) => v as number);
+                    const nid = Cube3.xyz2id(nx, ny, nz);
+                    res.cubes[nid] = this.cubes[id].rotate(F);
+                }
         return res;
     }
-    rotate(token:string):Cube3|undefined{
-        switch(token){
-            case 'F':
-                return this._rotate(front);
-            case 'B':
-                return this._rotate(back);
-            case 'L':
-                return this._rotate(left);
-            case 'R':
-                return this._rotate(right);
-            case 'U':
-                return this._rotate(up);
-            case 'D':
-                return this._rotate(down);
-            
-            case 'x':
-                return this._rotate(right,'all');
-            case 'y':
-                return this._rotate(up,'all');
-            case 'z':
-                return this._rotate(front,'all');
-            
-            case 'f':
-                return this._rotate(front,'all').rotate('B');
-            case 'b':
-                return this._rotate(back,'all').rotate('F');
-            case 'l':
-                return this._rotate(left,'all').rotate('R');
-            case 'r':
-                return this._rotate(right,'all').rotate('L');
-            case 'u':
-                return this._rotate(up,'all').rotate('D');
-            case 'd':
-                return this._rotate(down,'all').rotate('U');
 
-            case 'M':
-                return this._rotate(right,'middle');
-            case 'S':
-                return this._rotate(front,'middle');
-            case 'E':
-                return this._rotate(up,'middle');
-        }
+    rotate(token: Token): Cube3 {
+        const Rotations: { [key in string]: (base: Cube3) => Cube3 } = {
+            F: (base) => base._rotate('front'),
+            B: (base) => base._rotate('back'),
+            L: (base) => base._rotate('left'),
+            R: (base) => base._rotate('right'),
+            U: (base) => base._rotate('up'),
+            D: (base) => base._rotate('down'),
+
+            f: (base) => base._rotate('front', 'first_middle'),
+            b: (base) => base._rotate('back', 'first_middle'),
+            l: (base) => base._rotate('left', 'first_middle'),
+            r: (base) => base._rotate('right', 'first_middle'),
+            u: (base) => base._rotate('up', 'first_middle'),
+            d: (base) => base._rotate('down', 'first_middle'),
+
+            M: (base) => base._rotate('right', 'middle'),
+            S: (base) => base._rotate('front', 'middle'),
+            E: (base) => base._rotate('up', 'middle'),
+
+            x: (base) => base._rotate('right', 'all'),
+            y: (base) => base._rotate('up', 'all'),
+            z: (base) => base._rotate('front', 'all'),
+        };
+
+        return Rotations[token](this);
     }
-    // get color of certain surface
-    color(index:number):string{
-        const col=(index-1)%12;
-        const row=(index-1-col)/12;
+
+    // get getColor of certain surface
+    getColor(index: number): string {
+        const col = (index - 1) % 12;
+        const row = (index - 1 - col) / 12;
 
         // front
-        if(1*3<=row && row<2*3 && 1*3<=col && col<2*3)
-            return this.cubes[Cube3.xyz2id(1,col-(1*3+1),(1*3+1)-row)].look(front) as string;
-        
+        if (1 * 3 <= row && row < 2 * 3 && 1 * 3 <= col && col < 2 * 3) return this.cubes[Cube3.xyz2id(1, col - (1 * 3 + 1), 1 * 3 + 1 - row)].look('front');
         // back
-        if(1*3<=row && row<2*3 && 3*3<=col && col<4*3)
-            return this.cubes[Cube3.xyz2id(-1,(3*3+1)-col,(1*3+1)-row)].look(back) as string;
-        
+        if (1 * 3 <= row && row < 2 * 3 && 3 * 3 <= col && col < 4 * 3) return this.cubes[Cube3.xyz2id(-1, 3 * 3 + 1 - col, 1 * 3 + 1 - row)].look('back');
         // left
-        if(1*3<=row && row<2*3 && 0*3<=col && col<1*3)
-            return this.cubes[Cube3.xyz2id(col-(0*3+1),-1,(1*3+1)-row)].look(left) as string;
-
+        if (1 * 3 <= row && row < 2 * 3 && 0 * 3 <= col && col < 1 * 3) return this.cubes[Cube3.xyz2id(col - (0 * 3 + 1), -1, 1 * 3 + 1 - row)].look('left');
         // right
-        if(1*3<=row && row<2*3 && 2*3<=col && col<3*3)
-            return this.cubes[Cube3.xyz2id((2*3+1)-col,1,(1*3+1)-row)].look(right) as string;
-
+        if (1 * 3 <= row && row < 2 * 3 && 2 * 3 <= col && col < 3 * 3) return this.cubes[Cube3.xyz2id(2 * 3 + 1 - col, 1, 1 * 3 + 1 - row)].look('right');
         // up
-        if(0*3<=row && row<1*3 && 1*3<=col && col<2*3)
-            return this.cubes[Cube3.xyz2id(row-(0*3+1),col-(1*3+1),1)].look(up) as string;
-        
+        if (0 * 3 <= row && row < 1 * 3 && 1 * 3 <= col && col < 2 * 3) return this.cubes[Cube3.xyz2id(row - (0 * 3 + 1), col - (1 * 3 + 1), 1)].look('up');
         // down
-        if(2*3<=row && row<3*3 && 1*3<=col && col<2*3)
-            return this.cubes[Cube3.xyz2id((2*3+1)-row,col-(1*3+1),-1)].look(down) as string;
-        
+        if (2 * 3 <= row && row < 3 * 3 && 1 * 3 <= col && col < 2 * 3) return this.cubes[Cube3.xyz2id(2 * 3 + 1 - row, col - (1 * 3 + 1), -1)].look('down');
         return '';
     }
-    format():string{
-        let fmt='';
-        for(let i=1;i<=108;i++){
-            const c=this.color(i);
-            fmt+=c?c[0]:' ';
-            if(i!==1 && i!=108 && i%12===0)
-                fmt+='\n';
+
+    format(): string {
+        let fmt = '';
+        for (let i = 1; i <= 108; i++) {
+            const c = this.getColor(i);
+            fmt += c ? c[0] : ' ';
+            if (i !== 1 && i != 108 && i % 12 === 0) fmt += '\n';
         }
         return fmt;
     }
-};
+}
